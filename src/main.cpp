@@ -10,6 +10,7 @@
  * - IContext: application modes with lifecycle (initialize/update/cleanup)
  * - Fluent InputBinding API: onButton().press().then(...)
  * - Button events: press, release, longPress, doubleTap
+ * - Using OC_LOG_* for debug output
  *
  * New concepts:
  * - Context: A mode of operation (standalone, DAW mode, config mode, etc.)
@@ -19,21 +20,20 @@
  * Hardware required:
  * - Teensy 4.1
  * - 2 buttons (normally open, pull-up)
- *   - Button 1: pin 32
- *   - Button 2: pin 35
+ *
+ * NOTE: Enable -D OC_LOG in platformio.ini build_flags to see debug output.
+ *       Remove it for production (zero overhead, instant boot).
  */
 
-#include <Arduino.h>
 #include <optional>
 
+#include <oc/teensy/Teensy.hpp>
 #include <oc/app/OpenControlApp.hpp>
 #include <oc/context/IContext.hpp>
 #include <oc/context/Requirements.hpp>
-#include <oc/core/Result.hpp>
-#include <oc/teensy/Teensy.hpp>
 
 // ═══════════════════════════════════════════════════════════════════════════
-// Configuration
+// Configuration - Adapt to your hardware
 // ═══════════════════════════════════════════════════════════════════════════
 
 namespace Config {
@@ -45,10 +45,10 @@ namespace Config {
     constexpr uint32_t DOUBLE_TAP_MS = 300;
     constexpr uint8_t DEBOUNCE_MS = 5;
 
-    // Button hardware definitions
+    // Button hardware definitions - ADAPT pins to your wiring
     constexpr std::array<oc::common::ButtonDef, 2> BUTTONS = {{
-        oc::common::ButtonDef(1, oc::hal::GpioPin{32, oc::hal::GpioPin::Source::MCU}, true),
-        oc::common::ButtonDef(2, oc::hal::GpioPin{35, oc::hal::GpioPin::Source::MCU}, true),
+        oc::common::ButtonDef(1, oc::hal::GpioPin{32, oc::hal::GpioPin::Source::MCU}, true),  // ADAPT: pin 32
+        oc::common::ButtonDef(2, oc::hal::GpioPin{35, oc::hal::GpioPin::Source::MCU}, true),  // ADAPT: pin 35
     }};
 }
 
@@ -78,54 +78,40 @@ public:
     };
 
     bool initialize() override {
-        Serial.println("[Context] Initializing...");
-
-        // ─────────────────────────────────────────────────────
         // Button 1: Press/Release (momentary)
-        // ─────────────────────────────────────────────────────
         onButton(1).press().then([this]() {
             midi().sendCC(Config::MIDI_CHANNEL, Config::BUTTON1_CC, 127);
-            Serial.println("[Button 1] Press -> CC 127");
+            OC_LOG_DEBUG("Button 1: Press -> CC 127");
         });
 
         onButton(1).release().then([this]() {
             midi().sendCC(Config::MIDI_CHANNEL, Config::BUTTON1_CC, 0);
-            Serial.println("[Button 1] Release -> CC 0");
+            OC_LOG_DEBUG("Button 1: Release -> CC 0");
         });
 
-        // Long press for alternative action
         onButton(1).longPress(Config::LONG_PRESS_MS).then([]() {
-            Serial.println("[Button 1] Long press!");
+            OC_LOG_DEBUG("Button 1: Long press!");
         });
 
-        // ─────────────────────────────────────────────────────
         // Button 2: Toggle behavior
-        // ─────────────────────────────────────────────────────
         onButton(2).press().then([this]() {
             toggle_ = !toggle_;
             uint8_t value = toggle_ ? 127 : 0;
             midi().sendCC(Config::MIDI_CHANNEL, Config::BUTTON2_CC, value);
-            Serial.printf("[Button 2] Toggle -> CC %d\n", value);
+            OC_LOG_DEBUG("Button 2: Toggle -> CC {}", value);
         });
 
-        // Double tap for reset
         onButton(2).doubleTap(Config::DOUBLE_TAP_MS).then([this]() {
             toggle_ = false;
             midi().sendCC(Config::MIDI_CHANNEL, Config::BUTTON2_CC, 0);
-            Serial.println("[Button 2] Double tap -> Reset");
+            OC_LOG_DEBUG("Button 2: Double tap -> Reset");
         });
 
-        Serial.println("[Context] Ready");
         return true;
     }
 
-    void update() override {
-        // Called every frame - nothing to do here
-    }
-
-    void cleanup() override {
-        Serial.println("[Context] Cleanup");
-    }
+    void update() override {}
+    void cleanup() override {}
 
     const char* getName() const override { return "Main"; }
 
@@ -144,13 +130,8 @@ std::optional<oc::app::OpenControlApp> app;
 // ═══════════════════════════════════════════════════════════════════════════
 
 void setup() {
-    Serial.begin(115200);
-    while (!Serial && millis() < 2000) {}
+    OC_LOG_INFO("Example 03: Buttons");
 
-    Serial.println("\n[Example 03] Buttons");
-    Serial.println("====================\n");
-
-    // Build application with hardware drivers
     app = oc::teensy::AppBuilder()
         .midi()
         .buttons(Config::BUTTONS, Config::DEBOUNCE_MS)
@@ -159,18 +140,10 @@ void setup() {
             .doubleTapWindowMs = Config::DOUBLE_TAP_MS
         });
 
-    // Register context
     app->registerContext<MainContext>(ContextID::MAIN, "Main");
+    app->begin();
 
-    // Start application
-    if (auto r = app->begin(); !r) {
-        Serial.printf("[ERROR] %s\n", oc::core::errorCodeToString(r.error().code));
-        while (true);
-    }
-
-    Serial.println("\n[OK] Ready");
-    Serial.println("Button 1: Press=CC127, Release=CC0, LongPress=debug");
-    Serial.println("Button 2: Toggle CC, DoubleTap=Reset\n");
+    OC_LOG_INFO("Ready");
 }
 
 void loop() {
