@@ -27,7 +27,7 @@
 
 #include <optional>
 
-#include <oc/teensy/Teensy.hpp>
+#include <oc/hal/teensy/Teensy.hpp>
 #include <oc/app/OpenControlApp.hpp>
 #include <oc/context/IContext.hpp>
 #include <oc/context/Requirements.hpp>
@@ -46,9 +46,9 @@ namespace Config {
     constexpr uint8_t DEBOUNCE_MS = 5;
 
     // Button hardware definitions - ADAPT pins to your wiring
-    constexpr std::array<oc::common::ButtonDef, 2> BUTTONS = {{
-        oc::common::ButtonDef(1, oc::hal::GpioPin{32, oc::hal::GpioPin::Source::MCU}, true),  // ADAPT: pin 32
-        oc::common::ButtonDef(2, oc::hal::GpioPin{35, oc::hal::GpioPin::Source::MCU}, true),  // ADAPT: pin 35
+    constexpr std::array<oc::hal::common::ButtonDef, 2> BUTTONS = {{
+        oc::hal::common::ButtonDef(1, oc::hal::GpioPin{32, oc::hal::GpioPin::Source::MCU}, true),  // ADAPT: pin 32
+        oc::hal::common::ButtonDef(2, oc::hal::GpioPin{35, oc::hal::GpioPin::Source::MCU}, true),  // ADAPT: pin 35
     }};
 }
 
@@ -132,7 +132,7 @@ std::optional<oc::app::OpenControlApp> app;
 void setup() {
     OC_LOG_INFO("Example 03: Buttons");
 
-    app = oc::teensy::AppBuilder()
+    app = oc::hal::teensy::AppBuilder()
         .midi()
         .buttons(Config::BUTTONS, Config::DEBOUNCE_MS)
         .inputConfig({
