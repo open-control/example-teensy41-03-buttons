@@ -29,8 +29,9 @@
 
 #include <oc/hal/teensy/Teensy.hpp>
 #include <oc/app/OpenControlApp.hpp>
-#include <oc/context/IContext.hpp>
+#include <oc/context/ContextBase.hpp>
 #include <oc/context/Requirements.hpp>
+#include <oc/hal/common/embedded/ButtonDef.hpp>
 
 // ═══════════════════════════════════════════════════════════════════════════
 // Configuration - Adapt to your hardware
@@ -46,9 +47,9 @@ namespace Config {
     constexpr uint8_t DEBOUNCE_MS = 5;
 
     // Button hardware definitions - ADAPT pins to your wiring
-    constexpr std::array<oc::hal::common::ButtonDef, 2> BUTTONS = {{
-        oc::hal::common::ButtonDef(1, oc::hal::GpioPin{32, oc::hal::GpioPin::Source::MCU}, true),  // ADAPT: pin 32
-        oc::hal::common::ButtonDef(2, oc::hal::GpioPin{35, oc::hal::GpioPin::Source::MCU}, true),  // ADAPT: pin 35
+    constexpr std::array<oc::hal::common::embedded::ButtonDef, 2> BUTTONS = {{
+        oc::hal::common::embedded::ButtonDef(1, oc::hal::common::embedded::GpioPin{32, oc::hal::common::embedded::GpioPin::Source::MCU}, true),  // ADAPT: pin 32
+        oc::hal::common::embedded::ButtonDef(2, oc::hal::common::embedded::GpioPin{35, oc::hal::common::embedded::GpioPin::Source::MCU}, true),  // ADAPT: pin 35
     }};
 }
 
@@ -68,7 +69,7 @@ enum class ContextID : uint8_t { MAIN = 0 };
  * A Context is a mode of operation. It receives lifecycle callbacks
  * and has access to hardware APIs through protected accessors.
  */
-class MainContext : public oc::context::IContext {
+class MainContext : public oc::context::ContextBase {
 public:
     // Declare required APIs (validated at registration)
     static constexpr oc::context::Requirements REQUIRES{
