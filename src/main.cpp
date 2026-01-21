@@ -78,7 +78,7 @@ public:
         .midi = true
     };
 
-    bool initialize() override {
+    oc::Result<void> init() override {
         // Button 1: Press/Release (momentary)
         onButton(1).press().then([this]() {
             midi().sendCC(Config::MIDI_CHANNEL, Config::BUTTON1_CC, 127);
@@ -108,7 +108,7 @@ public:
             OC_LOG_DEBUG("Button 2: Double tap -> Reset");
         });
 
-        return true;
+        return oc::Result<void>::ok();
     }
 
     void update() override {}
