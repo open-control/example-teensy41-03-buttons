@@ -112,7 +112,6 @@ public:
     }
 
     void update() override {}
-    void cleanup() override {}
 
     const char* getName() const override { return "Main"; }
 
